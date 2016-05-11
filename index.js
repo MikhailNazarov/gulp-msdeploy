@@ -20,7 +20,7 @@
         if (path64 != null) {
             var msDeploy64Path = path.resolve(path.join(path64, relativeMsDeployPath));
             if (fs.existsSync(msDeploy64Path)) {
-                util.log("Found 64-bit version of msdeploy");
+                util.log("Found 64-bit version of msdeploy: "+msDeploy64Path);
                 return msDeploy64Path;
             }
         }
@@ -28,8 +28,8 @@
         if (path32 != null) {
             var msDeploy32Path = path.resolve(path.join(path32, relativeMsDeployPath));
             if (fs.existsSync(msDeploy32Path)) {
-                util.log("Found 32-bit version of msdeploy");
-                return msDeploy64Path;
+                util.log("Found 32-bit version of msdeploy"+msDeploy32Path);
+                return msDeploy32Path;
             }
         }
 
@@ -43,38 +43,35 @@
         };
         var options = _.extend(defaultOptions, config);
 
-        return through.obj(function (file, enc, cb) {
-            if (!file || !file.path) {
-                cb(null, file);
-                return;
-            }
-            var fullCommand = '"' + options.msdeployPath + '"';
-            if(options.sourceType == 'package') {
-                options.source = options.source || {};
-                options.source.package = file.path
-            }
-            if(options.sourceType == 'iisApp') {
-                options.source = options.source || {};
-                options.source.iisApp = file.path
-            }
-            delete options['sourceType'];
-            //Build args
-            //Loop through,
-            //Assume all level 1 are arguments: "-arg:"
-            //Assume all level 2 is parameters, can be a string, or multiple key value pairs
 
-            delete options["msdeployPath"];
+        var fullCommand = '"' + options.msdeployPath + '"';
+        if(options.sourceType == 'package') {
+            options.source = options.source || {};
+            options.source.package = file.path
+        }
+        if(options.sourceType == 'iisApp') {
+            options.source = options.source || {};
+            options.source.iisApp = file.path
+        }
+        delete options['sourceType'];
+        //Build args
+        //Loop through,
+        //Assume all level 1 are arguments: "-arg:"
+        //Assume all level 2 is parameters, can be a string, or multiple key value pairs
 
-            fullCommand += buildCommand(options);
+        delete options["msdeployPath"];
 
-            util.log("Working...");
-            return exec(fullCommand,{ maxBuffer: 2000*1024}, function (error, stdout, stderr) {
-                util.log(stdout);
-                if (error !== null) {
-                    throw new Error(util.colors.red('msdeploy: ' + stderr));
-                }
-                cb();
-            });
+        util.log(JSON.stringify(options));
+        fullCommand += buildCommand(options);
+
+        util.log(fullCommand);
+        util.log("Working...");
+        return exec('chcp 65001 | '+fullCommand,{ maxBuffer: 2000*1024}, function (error, stdout, stderr) {
+            util.log(stdout);
+            if (error !== null) {
+                throw new Error(util.colors.red('msdeploy: ' + stderr));
+            }
+            
         });
 
     }
